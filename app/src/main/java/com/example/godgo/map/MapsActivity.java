@@ -53,7 +53,7 @@ public class MapsActivity extends FragmentActivity implements OnMapReadyCallback
     HashMap<Integer, MarkerItem> waypoints = new HashMap<>();
     Integer waypointCnt=1;
     TextView t;
-    Button displayButton,selectButton,sendButton;
+    Button displayButton,selectButton,sendButton,searchButton;
     private GoogleMap mMap;
     Credentials credentials;
     MarkerItem selectedDrone;
@@ -114,13 +114,22 @@ public class MapsActivity extends FragmentActivity implements OnMapReadyCallback
         });
         selectButton.setEnabled(false);
 
-        Button sendButton = (Button) findViewById(R.id.send);
+        sendButton = (Button) findViewById(R.id.send);
         sendButton.setOnClickListener(new View.OnClickListener() {
             @Override
             public void onClick(View v) {
                 sendMission();
             }
         });
+
+        searchButton = (Button) findViewById(R.id.search);
+        sendButton.setOnClickListener(new View.OnClickListener() {
+            @Override
+            public void onClick(View v) {
+                searchMission();
+            }
+        });
+
         t = (TextView) findViewById(R.id.textView);
 
     }
@@ -147,6 +156,15 @@ public class MapsActivity extends FragmentActivity implements OnMapReadyCallback
         try {
             ReadDrone readDrones = new ReadDrone();
             readDrones.execute();
+        } catch (Exception e) {
+            Toast.makeText(MapsActivity.this,e.toString(),Toast.LENGTH_SHORT).show();
+        }
+    }
+
+    private void searchMission() {
+        try {
+            SearchMission searchMission = new SearchMission();
+            searchMission.execute();
         } catch (Exception e) {
             Toast.makeText(MapsActivity.this,e.toString(),Toast.LENGTH_SHORT).show();
         }
@@ -217,6 +235,7 @@ public class MapsActivity extends FragmentActivity implements OnMapReadyCallback
             }
             return result;
         }
+
         @Override
         protected  void onProgressUpdate(String... para){
             super.onProgressUpdate(para);
@@ -230,6 +249,46 @@ public class MapsActivity extends FragmentActivity implements OnMapReadyCallback
         protected void onPostExecute(String result) {
             super.onPostExecute(result);
             Toast.makeText(MapsActivity.this,result,Toast.LENGTH_SHORT).show();
+        }
+    }
+
+    private class SearchMission extends AsyncTask<BigInteger, String,List<MarkerItem>> {
+        @Override
+        protected  List<MarkerItem> doInBackground(BigInteger... params) {
+            //데이터 읽어와서 마커 표시하기
+            List<MarkerItem> result = new ArrayList<MarkerItem>();
+            Tuple3<List<BigInteger>,List<BigInteger>,BigInteger> getMissionInfo;
+            List<MissinInfo> missionData= db.selectAll();
+            double inputLat;
+            double inputLon;
+            BigInteger inputState;
+            try{
+
+                for(MissinInfo i : missionData) {
+                    getMissionInfo = droneChain.getMission(i.getDroneAddr(), BigInteger.valueOf(i.getMissionIndex())).send();
+
+                    List<BigInteger> lat  = getMissionInfo.getValue1();
+                    List<BigInteger> lon  = getMissionInfo.getValue2();
+                    inputState =  getMissionInfo.getValue3();
+                    for(int j = 0; j < lat.size(); j++){
+                        inputLat = Double.valueOf(lat.get(j).toString())/Double.valueOf("1000000");
+                        inputLon = Double.valueOf(lon.get(j).toString())/Double.valueOf("1000000");
+                        result.add(new MarkerItem(inputLat,inputLon,inputState,""));
+                    }
+                }
+            }catch (Exception e){
+                result = result;
+            }
+            return result;
+        }
+        @Override
+        protected void onPostExecute(List<MarkerItem> result) {
+            //마커 그리기
+            super.onPostExecute(result);
+            //드론 표시
+            for(MarkerItem i : result){
+                mMap.addMarker(new MarkerOptions().position(i.getCoord()).title("Mission").snippet(i.getAddr()));
+            }
         }
     }
 
