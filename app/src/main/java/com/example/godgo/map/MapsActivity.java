@@ -263,7 +263,7 @@ public class MapsActivity extends FragmentActivity implements OnMapReadyCallback
             double inputLon;
             BigInteger inputState;
             try{
-
+                //기능 구헌
                 for(MissinInfo i : missionData) {
                     getMissionInfo = droneChain.getMission(i.getDroneAddr(), BigInteger.valueOf(i.getMissionIndex())).send();
 
