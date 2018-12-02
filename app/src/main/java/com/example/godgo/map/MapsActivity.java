@@ -1,8 +1,14 @@
 package com.example.godgo.map;
 
 
+import android.app.ProgressDialog;
+import android.content.Intent;
 import android.database.sqlite.SQLiteDatabase;
+import android.graphics.Bitmap;
+import android.graphics.drawable.BitmapDrawable;
+import android.net.Uri;
 import android.os.AsyncTask;
+import android.os.Environment;
 import android.support.v4.app.FragmentActivity;
 import android.os.Bundle;
 import android.view.View;
@@ -14,6 +20,7 @@ import com.google.android.gms.maps.CameraUpdateFactory;
 import com.google.android.gms.maps.GoogleMap;
 import com.google.android.gms.maps.OnMapReadyCallback;
 import com.google.android.gms.maps.SupportMapFragment;
+import com.google.android.gms.maps.model.BitmapDescriptorFactory;
 import com.google.android.gms.maps.model.LatLng;
 import com.google.android.gms.maps.model.Marker;
 import com.google.android.gms.maps.model.MarkerOptions;
@@ -45,6 +52,7 @@ import java.util.Arrays;
 import java.util.HashMap;
 import java.util.Iterator;
 import java.util.List;
+import java.util.Map;
 import java.util.Observable;
 
 
@@ -52,8 +60,7 @@ import java.util.Observable;
 public class MapsActivity extends FragmentActivity implements OnMapReadyCallback {
     HashMap<Integer, MarkerItem> waypoints = new HashMap<>();
     Integer waypointCnt=1;
-    TextView t;
-    Button displayButton,selectButton,sendButton,searchButton;
+    Button displayButton,selectButton,sendButton,searchButton,logButton,clearButton;
     private GoogleMap mMap;
     Credentials credentials;
     MarkerItem selectedDrone;
@@ -63,18 +70,19 @@ public class MapsActivity extends FragmentActivity implements OnMapReadyCallback
     Web3j web3;
     Dronechain droneChain;
     DBManager db;
-
+    Intent intent;
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
         //load wallet
         try {
-            credentials = WalletUtils.loadCredentials("tjrwns92!", "/storage/emulated/0/Pictures/UTC--2018-10-30T06-07-25.479Z--21ae06c29be5c4a899a2545519a29d976e2fdd24");
+            credentials = WalletUtils.loadCredentials("tjrwns92!", Uri.parse(Environment.getExternalStorageDirectory() + "/Pictures/UTC--2018-10-30T06-07-25.479Z--21ae06c29be5c4a899a2545519a29d976e2fdd24").toString());
         } catch (IOException e) {
             e.printStackTrace();
         } catch (CipherException e) {
             e.printStackTrace();
         }
+        intent = new Intent(MapsActivity.this, DroneLogActivity.class);
 
         super.onCreate(savedInstanceState);
         setContentView(R.layout.activity_maps);
@@ -101,7 +109,12 @@ public class MapsActivity extends FragmentActivity implements OnMapReadyCallback
         displayButton.setOnClickListener(new View.OnClickListener() {
             @Override
             public void onClick(View v) {
-                displayDrone();
+                try {
+                    ReadDrone readDrones = new ReadDrone();
+                    readDrones.execute();
+                } catch (Exception e) {
+                    Toast.makeText(MapsActivity.this,e.toString(),Toast.LENGTH_SHORT).show();
+                }
             }
         });
 
@@ -109,7 +122,9 @@ public class MapsActivity extends FragmentActivity implements OnMapReadyCallback
         selectButton.setOnClickListener(new View.OnClickListener() {
             @Override
             public void onClick(View v) {
-                selectDrone();
+                if(!(selectedDrone.isSelected())){
+                    selectedDrone.selectMarker(true);
+                }
             }
         });
         selectButton.setEnabled(false);
@@ -118,61 +133,55 @@ public class MapsActivity extends FragmentActivity implements OnMapReadyCallback
         sendButton.setOnClickListener(new View.OnClickListener() {
             @Override
             public void onClick(View v) {
-                sendMission();
+                if(!waypoints.isEmpty() && selectedDrone.isSelected()){
+                    try {
+                        SetMission sendMission = new SetMission();
+                        sendMission.execute();
+                    }
+                    catch(Exception e) {
+                        Toast.makeText(MapsActivity.this,e.toString(),Toast.LENGTH_SHORT).show();
+                    }
+                }
             }
         });
 
         searchButton = (Button) findViewById(R.id.search);
-        sendButton.setOnClickListener(new View.OnClickListener() {
+        searchButton.setOnClickListener(new View.OnClickListener() {
             @Override
             public void onClick(View v) {
-                searchMission();
+                try {
+                    SearchMission searchMission = new SearchMission();
+                    searchMission.execute();
+                } catch (Exception e) {
+                    Toast.makeText(MapsActivity.this,e.toString(),Toast.LENGTH_SHORT).show();
+                }
             }
         });
 
-        t = (TextView) findViewById(R.id.textView);
-
-    }
-
-    private void selectDrone() {
-        if(!(selectedDrone.isSelected())){
-            selectedDrone.selectMarker(true);
-        }
-    }
-
-    private void sendMission() {
-        if(!waypoints.isEmpty() && selectedDrone.isSelected()){
-            try {
-                SetMission sendMission = new SetMission();
-                sendMission.execute();
+        logButton = (Button) findViewById((R.id.log));
+        logButton.setOnClickListener(new View.OnClickListener() {
+            @Override
+            public void onClick(View v) {
+                startActivity(intent);
             }
-            catch(Exception e) {
-                Toast.makeText(MapsActivity.this,e.toString(),Toast.LENGTH_SHORT).show();
-            }
-        }
-    }
+        });
 
-    private void displayDrone() {
-        try {
-            ReadDrone readDrones = new ReadDrone();
-            readDrones.execute();
-        } catch (Exception e) {
-            Toast.makeText(MapsActivity.this,e.toString(),Toast.LENGTH_SHORT).show();
-        }
     }
-
-    private void searchMission() {
-        try {
-            SearchMission searchMission = new SearchMission();
-            searchMission.execute();
-        } catch (Exception e) {
-            Toast.makeText(MapsActivity.this,e.toString(),Toast.LENGTH_SHORT).show();
-        }
-    }
-
-    private class ReadDrone extends AsyncTask<BigInteger, String,List<MarkerItem>> {
+    private class ReadDrone extends AsyncTask<Void, String,List<MarkerItem>> {
+        ProgressDialog asyncDialog = new ProgressDialog(
+                MapsActivity.this);
         @Override
-        protected  List<MarkerItem> doInBackground(BigInteger... params) {
+        protected void onPreExecute(){
+            asyncDialog.setProgressStyle(ProgressDialog.STYLE_SPINNER);
+            asyncDialog.setMessage("로딩중입니다..");
+
+            // show dialog
+            asyncDialog.show();
+            super.onPreExecute();
+        }
+
+        @Override
+        protected  List<MarkerItem> doInBackground(Void... arg0) {
             List<MarkerItem> result = new ArrayList<MarkerItem>();
 
             try {
@@ -193,19 +202,36 @@ public class MapsActivity extends FragmentActivity implements OnMapReadyCallback
             }
             return result;
         }
+
         @Override
         protected void onPostExecute(List<MarkerItem> result) {
             super.onPostExecute(result);
             //드론 표시
+            BitmapDrawable bitmapdraw=(BitmapDrawable)getResources().getDrawable(R.drawable.mavic);
+            Bitmap b=bitmapdraw.getBitmap();
+            Bitmap smallMarker = Bitmap.createScaledBitmap(b, 100, 100, false);
             for(MarkerItem i : result){
-                mMap.addMarker(new MarkerOptions().position(i.getCoord()).title("Drones").snippet(i.getAddr()));
+                mMap.addMarker(new MarkerOptions().position(i.getCoord()).title("Drones").snippet(i.getAddr()).icon(BitmapDescriptorFactory.fromBitmap(smallMarker)));
             }
+            asyncDialog.dismiss();
         }
     }
 
-    private class SetMission extends AsyncTask<BigInteger, String,String> {
+    private class SetMission extends AsyncTask<Void, String,String> {
+        ProgressDialog asyncDialog = new ProgressDialog(
+                MapsActivity.this);
         @Override
-        protected  String doInBackground(BigInteger... params) {
+        protected void onPreExecute(){
+            asyncDialog.setProgressStyle(ProgressDialog.STYLE_SPINNER);
+            asyncDialog.setMessage("미션 전송중입니다...");
+
+            // show dialog
+            asyncDialog.show();
+            super.onPreExecute();
+        }
+
+        @Override
+        protected  String doInBackground(Void... params) {
             String result = "미션이 성공적으로 전송되었습니다.";
             List<BigInteger> latList = new ArrayList<>();
             List<BigInteger> lonList = new ArrayList<>();
@@ -228,8 +254,6 @@ public class MapsActivity extends FragmentActivity implements OnMapReadyCallback
                 String paraData = String.valueOf(Integer.parseInt(returnList.get(returnList.size()-1).getData().substring(2),16));
                 MissinInfo insertData = new MissinInfo(selectedDrone.getAddr(),Integer.parseInt(paraData));
                 db.insertData(insertData);
-                publishProgress(paraData);
-
             } catch (Exception e) {
                 result = "전송 실패";
             }
@@ -237,24 +261,28 @@ public class MapsActivity extends FragmentActivity implements OnMapReadyCallback
         }
 
         @Override
-        protected  void onProgressUpdate(String... para){
-            super.onProgressUpdate(para);
-            List<MissinInfo> dbData = db.selectAll();
-            for(MissinInfo i : dbData){
-                t.setText(i.getDroneAddr() + " " +i.getMissionIndex().toString() +" "+dbData.size());
-            }
-
-        }
-        @Override
         protected void onPostExecute(String result) {
             super.onPostExecute(result);
             Toast.makeText(MapsActivity.this,result,Toast.LENGTH_SHORT).show();
+            asyncDialog.dismiss();
         }
+
     }
 
-    private class SearchMission extends AsyncTask<BigInteger, String,List<MarkerItem>> {
+    private class SearchMission extends AsyncTask<Void, String,List<MarkerItem>> {
+        ProgressDialog asyncDialog = new ProgressDialog(
+                MapsActivity.this);
         @Override
-        protected  List<MarkerItem> doInBackground(BigInteger... params) {
+        protected void onPreExecute(){
+            asyncDialog.setProgressStyle(ProgressDialog.STYLE_SPINNER);
+            asyncDialog.setMessage("미션 로딩중입니다...");
+
+            // show dialog
+            asyncDialog.show();
+            super.onPreExecute();
+        }
+        @Override
+        protected  List<MarkerItem> doInBackground(Void... params) {
             //데이터 읽어와서 마커 표시하기
             List<MarkerItem> result = new ArrayList<MarkerItem>();
             Tuple3<List<BigInteger>,List<BigInteger>,BigInteger> getMissionInfo;
@@ -289,7 +317,9 @@ public class MapsActivity extends FragmentActivity implements OnMapReadyCallback
             for(MarkerItem i : result){
                 mMap.addMarker(new MarkerOptions().position(i.getCoord()).title("Mission").snippet(i.getAddr()));
             }
+            asyncDialog.dismiss();
         }
+
     }
 
 
@@ -325,7 +355,5 @@ public class MapsActivity extends FragmentActivity implements OnMapReadyCallback
             }
         });
 
-
     }
-
 }
