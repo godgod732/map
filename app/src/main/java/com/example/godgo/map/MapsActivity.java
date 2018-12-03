@@ -158,14 +158,6 @@ public class MapsActivity extends FragmentActivity implements OnMapReadyCallback
             }
         });
 
-        logButton = (Button) findViewById((R.id.log));
-        logButton.setOnClickListener(new View.OnClickListener() {
-            @Override
-            public void onClick(View v) {
-                startActivity(intent);
-            }
-        });
-        t = (TextView) findViewById(R.id.textView);
     }
     private class ReadDrone extends AsyncTask<Void, String,List<MarkerItem>> {
 
@@ -410,7 +402,6 @@ public class MapsActivity extends FragmentActivity implements OnMapReadyCallback
         }
 
     }
-
     @Override
     public void onMapReady(GoogleMap googleMap) {
         mMap = googleMap;
