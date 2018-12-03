@@ -19,9 +19,16 @@
     <LinearLayout xmlns:android="http://schemas.android.com/apk/res/android"
         android:layout_width="match_parent"
         android:layout_height="match_parent"
-        android:layout_weight="8"
+        android:layout_weight="1"
         android:background="@color/colorAccent"
-        android:orientation="horizontal">
+        android:orientation="vertical">
+
+        <TextView
+            android:id="@+id/textView"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:layout_weight="1"
+            android:text="TextView" />
 
         <Button
             android:id="@+id/display"
@@ -57,13 +64,6 @@
             android:layout_height="wrap_content"
             android:layout_weight="1"
             android:text="clear" />
-
-        <Button
-            android:id="@+id/log"
-            android:layout_width="wrap_content"
-            android:layout_height="wrap_content"
-            android:layout_weight="1"
-            android:text="log" />
 
     </LinearLayout>
 
