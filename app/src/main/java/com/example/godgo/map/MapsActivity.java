@@ -1,19 +1,22 @@
 package com.example.godgo.map;
 
-
+import android.support.v7.app.AppCompatActivity;
+import android.support.design.widget.FloatingActionButton;
+import android.view.LayoutInflater;
+import android.view.animation.Animation;
+import android.view.animation.AnimationUtils;
 import android.app.ProgressDialog;
 import android.content.Intent;
-import android.database.sqlite.SQLiteDatabase;
 import android.graphics.Bitmap;
 import android.graphics.drawable.BitmapDrawable;
 import android.net.Uri;
 import android.os.AsyncTask;
 import android.os.Environment;
-import android.support.v4.app.FragmentActivity;
+//import android.support.v4.app.FragmentActivity;
 import android.os.Bundle;
 import android.view.View;
 import android.widget.Button;
-import android.widget.EditText;
+import android.widget.FrameLayout;
 import android.widget.TextView;
 import android.widget.Toast;
 import com.google.android.gms.maps.CameraUpdateFactory;
@@ -25,41 +28,30 @@ import com.google.android.gms.maps.model.LatLng;
 import com.google.android.gms.maps.model.Marker;
 import com.google.android.gms.maps.model.MarkerOptions;
 
-
-import org.web3j.abi.EventEncoder;
-import org.web3j.abi.TypeReference;
-import org.web3j.abi.datatypes.Address;
-import org.web3j.abi.datatypes.Array;
-import org.web3j.abi.datatypes.Event;
+import org.objectweb.asm.tree.analysis.Frame;
 import org.web3j.crypto.CipherException;
 import org.web3j.crypto.Credentials;
 import org.web3j.crypto.WalletUtils;
 import org.web3j.protocol.Web3j;
 import org.web3j.protocol.Web3jFactory;
-import org.web3j.protocol.core.DefaultBlockParameter;
-import org.web3j.protocol.core.DefaultBlockParameterName;
 import org.web3j.protocol.core.methods.response.Log;
 import org.web3j.protocol.core.methods.response.TransactionReceipt;
 import org.web3j.protocol.http.HttpService;
-import org.web3j.tuples.generated.Tuple2;
 import org.web3j.tuples.generated.Tuple3;
 import org.web3j.tuples.generated.Tuple4;
-
-
 import java.io.IOException;
 import java.math.BigInteger;
 import java.util.ArrayList;
-import java.util.Arrays;
 import java.util.HashMap;
 import java.util.Iterator;
 import java.util.List;
-import java.util.Map;
-import java.util.Observable;
 
 
 
-public class MapsActivity extends FragmentActivity implements OnMapReadyCallback {
+
+public class MapsActivity extends AppCompatActivity implements OnMapReadyCallback ,View.OnClickListener{
     HashMap<Integer, MarkerItem> waypoints = new HashMap<>();
+
     Integer waypointCnt=1;
     Button displayButton,selectButton,sendButton,searchButton,logButton,clearButton;
     private GoogleMap mMap;
@@ -71,11 +63,31 @@ public class MapsActivity extends FragmentActivity implements OnMapReadyCallback
     Web3j web3;
     Dronechain droneChain;
     DBManager db;
-    Intent intent;
-    TextView t;
+    private Animation fab_open, fab_close;
+    private Boolean isFabOpen = false;
+    private FloatingActionButton fab, fab1, fab2, fab3, fab4, fab5;
+    LayoutInflater inflater;
     List<Double> lst = new ArrayList<Double>();
     @Override
     protected void onCreate(Bundle savedInstanceState) {
+        super.onCreate(savedInstanceState);
+        setContentView(R.layout.activity_maps);
+        fab_open = AnimationUtils.loadAnimation(getApplicationContext(), R.anim.fab_open);
+        fab_close = AnimationUtils.loadAnimation(getApplicationContext(), R.anim.fab_close);
+        fab = (FloatingActionButton) findViewById(R.id.fab);
+        fab1 = (FloatingActionButton) findViewById(R.id.fab1);
+        fab2 = (FloatingActionButton) findViewById(R.id.fab2);
+        fab3 = (FloatingActionButton) findViewById(R.id.fab3);
+        fab4 = (FloatingActionButton) findViewById(R.id.fab4);
+        fab5 = (FloatingActionButton) findViewById(R.id.fab5);
+
+        fab.setOnClickListener(this);
+        fab1.setOnClickListener(this);
+        fab2.setOnClickListener(this);
+        fab3.setOnClickListener(this);
+        fab4.setOnClickListener(this);
+        fab5.setOnClickListener(this);
+
         //load wallet
         try {
             credentials = WalletUtils.loadCredentials("tjrwns92!", Uri.parse(Environment.getExternalStorageDirectory() + "/Pictures/UTC--2018-10-30T06-07-25.479Z--21ae06c29be5c4a899a2545519a29d976e2fdd24").toString());
@@ -85,8 +97,6 @@ public class MapsActivity extends FragmentActivity implements OnMapReadyCallback
             e.printStackTrace();
         }
 
-        super.onCreate(savedInstanceState);
-        setContentView(R.layout.activity_maps);
         // Obtain the SupportMapFragment and get notified when the map is ready to be used.
         SupportMapFragment mapFragment = (SupportMapFragment) getSupportFragmentManager()
                 .findFragmentById(R.id.map);
@@ -102,22 +112,103 @@ public class MapsActivity extends FragmentActivity implements OnMapReadyCallback
         initUi();
 
     }
+    @Override
+    public void onClick(View v) {
+        int id = v.getId();
+        switch (id) {
+            //메뉴 활성화 버튼
+            case R.id.fab:
+                anim();
+                Toast.makeText(this, "Floating Action Button", Toast.LENGTH_SHORT).show();
+                break;
 
+            //erase button
+            case R.id.fab1:
+                anim();
 
-    private void initUi(){
-        displayButton = (Button) findViewById(R.id.display);
-        displayButton.setOnClickListener(new View.OnClickListener() {
-            @Override
-            public void onClick(View v) {
+                break;
+
+            //log button
+            case R.id.fab2:
+                anim();
+                if(selectedDrone.isSelected()) {
+                    try {
+                        ReadFlightHistory readFlightHistory = new ReadFlightHistory();
+                        readFlightHistory.execute(selectedDrone.getAddr());
+                    } catch (Exception e) {
+
+                    }
+                }
+                break;
+
+            //my mission button
+            case R.id.fab3:
+                anim();
+                try {
+                    SearchMission searchMission = new SearchMission();
+                    searchMission.execute();
+                } catch (Exception e) {
+                    Toast.makeText(MapsActivity.this,e.toString(),Toast.LENGTH_SHORT).show();
+                }
+                break;
+
+            //send mission button
+            case R.id.fab4:
+                anim();
+                if(!waypoints.isEmpty() && selectedDrone.isSelected()){
+                    try {
+                        SetMission sendMission = new SetMission();
+                        sendMission.execute();
+                    }
+                    catch(Exception e) {
+                        Toast.makeText(MapsActivity.this,e.toString(),Toast.LENGTH_SHORT).show();
+                    }
+                }
+                break;
+
+            //display drone button
+            case R.id.fab5:
+                anim();
                 try {
                     ReadDrone readDrones = new ReadDrone();
                     readDrones.execute();
                 } catch (Exception e) {
                     Toast.makeText(MapsActivity.this,e.toString(),Toast.LENGTH_SHORT).show();
                 }
-            }
-        });
+                break;
+        }
+    }
+    public void anim() {
 
+        if (isFabOpen) {
+            fab1.startAnimation(fab_close);
+            fab2.startAnimation(fab_close);
+            fab3.startAnimation(fab_close);
+            fab4.startAnimation(fab_close);
+            fab5.startAnimation(fab_close);
+            fab1.setClickable(false);
+            fab2.setClickable(false);
+            fab3.setClickable(false);
+            fab4.setClickable(false);
+            fab5.setClickable(false);
+            isFabOpen = false;
+        } else {
+            fab1.startAnimation(fab_open);
+            fab2.startAnimation(fab_open);
+            fab3.startAnimation(fab_open);
+            fab4.startAnimation(fab_open);
+            fab5.startAnimation(fab_open);
+            fab1.setClickable(true);
+            fab2.setClickable(true);
+            fab3.setClickable(true);
+            fab4.setClickable(true);
+            fab5.setClickable(true);
+            isFabOpen = true;
+        }
+    }
+
+    private void initUi(){
+        /*
         selectButton = (Button) findViewById(R.id.select);
         selectButton.setOnClickListener(new View.OnClickListener() {
             @Override
@@ -128,36 +219,7 @@ public class MapsActivity extends FragmentActivity implements OnMapReadyCallback
             }
         });
         selectButton.setEnabled(false);
-
-        sendButton = (Button) findViewById(R.id.send);
-        sendButton.setOnClickListener(new View.OnClickListener() {
-            @Override
-            public void onClick(View v) {
-                if(!waypoints.isEmpty() && selectedDrone.isSelected()){
-                    try {
-                        SetMission sendMission = new SetMission();
-                        sendMission.execute();
-                    }
-                    catch(Exception e) {
-                        Toast.makeText(MapsActivity.this,e.toString(),Toast.LENGTH_SHORT).show();
-                    }
-                }
-            }
-        });
-
-        searchButton = (Button) findViewById(R.id.search);
-        searchButton.setOnClickListener(new View.OnClickListener() {
-            @Override
-            public void onClick(View v) {
-                try {
-                    SearchMission searchMission = new SearchMission();
-                    searchMission.execute();
-                } catch (Exception e) {
-                    Toast.makeText(MapsActivity.this,e.toString(),Toast.LENGTH_SHORT).show();
-                }
-            }
-        });
-
+ */
     }
     private class ReadDrone extends AsyncTask<Void, String,List<MarkerItem>> {
 
@@ -198,7 +260,7 @@ public class MapsActivity extends FragmentActivity implements OnMapReadyCallback
         }
         @Override
         protected  void onProgressUpdate(String... para){
-            t.setText(para[0]);
+
         }
         @Override
         protected void onPostExecute(List<MarkerItem> result) {
@@ -357,7 +419,7 @@ public class MapsActivity extends FragmentActivity implements OnMapReadyCallback
             try {
                 Tuple4<List<BigInteger>, List<BigInteger>, List<String>, BigInteger> droneLog; // 드론 List -> 그 드론의 Mission 기록들 List 를 볼거임
                 //받아온 드론 주소에 대해서 조사 실시
-                droneLog = droneChain.traceFlightHistory(params[0], BigInteger.valueOf(2)).send();// 갖고온 state로 확인하는것 두가지 방식이 있지만 여기서는 그냥 drone 의 state 를 따라가는걸로 설정
+                droneLog = droneChain.traceFlightHistory(params[0], BigInteger.valueOf(0)).send();// 갖고온 state로 확인하는것 두가지 방식이 있지만 여기서는 그냥 drone 의 state 를 따라가는걸로 설정
                 double inputLat,inputLon;
                 BigInteger inputState;
                 String inputAddr;
@@ -413,15 +475,10 @@ public class MapsActivity extends FragmentActivity implements OnMapReadyCallback
             public boolean onMarkerClick(Marker marker) {
                 Toast.makeText(MapsActivity.this,marker.getSnippet(),Toast.LENGTH_SHORT).show();
                 if(marker.getTitle().equals("Drones")) {
-                    selectButton.setEnabled(true);
                     selectedDrone = new MarkerItem(marker.getPosition().latitude,marker.getPosition().longitude,BigInteger.valueOf(-1),marker.getSnippet());
+                    selectedDrone.selectMarker(true);
                     //비행 이력 수신
-                    try{
-                        ReadFlightHistory readFlightHistory = new ReadFlightHistory();
-                        readFlightHistory.execute(marker.getSnippet());
-                    }catch(Exception e){
 
-                    }
 
                 }
                 if(marker.getTitle().equals("waypoint")){
@@ -434,8 +491,6 @@ public class MapsActivity extends FragmentActivity implements OnMapReadyCallback
         mMap.setOnMapClickListener(new GoogleMap.OnMapClickListener() {
             @Override
             public void onMapClick(LatLng point) {
-                //드론 마커가 선택된 상황이 아니기 때문에 비활성화
-                selectButton.setEnabled(false);
                 waypoints.put(waypointCnt,new MarkerItem(point.latitude,point.longitude,BigInteger.valueOf(-1),""));
                 mMap.addMarker(new MarkerOptions().position(point).snippet(waypointCnt.toString()).title("waypoint"));
                 waypointCnt++;
