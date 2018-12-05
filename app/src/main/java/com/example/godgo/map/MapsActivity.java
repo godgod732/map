@@ -137,9 +137,12 @@ public class MapsActivity extends AppCompatActivity implements OnMapReadyCallbac
                 anim();
                 break;
 
-            //erase button
+            //clear button
             case R.id.fab1:
                 anim();
+                mMap.clear();
+                waypoints.clear();
+                selectedDrone.selectMarker(false);
                 break;
 
             //log button
@@ -243,7 +246,7 @@ public class MapsActivity extends AppCompatActivity implements OnMapReadyCallbac
         @Override
         protected void onPreExecute(){
             asyncDialog.setProgressStyle(ProgressDialog.STYLE_SPINNER);
-            asyncDialog.setMessage(String.valueOf(db.selectAll().size()));
+            asyncDialog.setMessage("로딩 중입니다.");
             // show dialog
             asyncDialog.show();
             super.onPreExecute();
