@@ -12,8 +12,8 @@ public class DBManager {
 
 
     // DB관련 상수 선언
-    private static final String dbName = "MyMission.db";
-    private static final String tableName = "MissionInfo";
+    private final String dbName;
+    private final String tableName = "MissionInfo";
     public static final int dbVersion = 1;
 
     // DB관련 객체 선언
@@ -24,7 +24,8 @@ public class DBManager {
     private Context context;
 
     // 생성자
-    public DBManager(Context context) {
+    public DBManager(Context context,String dbNameByContractAddr) {
+        dbName = dbNameByContractAddr.substring(2,6) + ".db";
         this.context = context;
         this.opener = new OpenHelper(context, dbName, null, dbVersion);
         db = opener.getWritableDatabase();

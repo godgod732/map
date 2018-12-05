@@ -108,7 +108,7 @@ public class MapsActivity extends AppCompatActivity implements OnMapReadyCallbac
         web3 = Web3jFactory.build(new HttpService("https://rinkeby.infura.io/v3/8ff6512d7e094fe9ac1190b231614703"));
 
         droneChain = Dronechain.load(contractAddr,web3,credentials,gasPrice,gasLimit);
-        db = new DBManager(MapsActivity.this);
+        db = new DBManager(MapsActivity.this,contractAddr);
         initUi();
 
     }

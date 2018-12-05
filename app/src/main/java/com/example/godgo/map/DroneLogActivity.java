@@ -66,7 +66,7 @@ public class DroneLogActivity extends AppCompatActivity {
     @Override
     protected void onCreate(Bundle savedInstanceState) {
 
-        db = new DBManager(DroneLogActivity.this);
+
         if (Build.VERSION.SDK_INT > 22) {
             requestPermissions(new String[]{READ_EXTERNAL_STORAGE,WRITE_EXTERNAL_STORAGE}, 1);
         }
@@ -82,7 +82,7 @@ public class DroneLogActivity extends AppCompatActivity {
         contractAddr = "0xa56e93d7a1Bf923Aa2A8DD863535d124BBD776EA";
         web3 = Web3jFactory.build(new HttpService("https://rinkeby.infura.io/v3/faa0a68fa9bc43b0a56c79f82069e283"));
         droneChain = Dronechain.load(contractAddr, web3, credentials, gasPrice, gasLimit);
-
+        db = new DBManager(DroneLogActivity.this,contractAddr);
         super.onCreate(savedInstanceState);
         setContentView(R.layout.activity_log);
 
