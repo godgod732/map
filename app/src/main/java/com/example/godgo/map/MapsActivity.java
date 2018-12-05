@@ -53,7 +53,6 @@ public class MapsActivity extends AppCompatActivity implements OnMapReadyCallbac
     HashMap<Integer, MarkerItem> waypoints = new HashMap<>();
 
     Integer waypointCnt=1;
-    Button displayButton,selectButton,sendButton,searchButton,logButton,clearButton;
     private GoogleMap mMap;
     Credentials credentials;
     MarkerItem selectedDrone;
@@ -68,6 +67,7 @@ public class MapsActivity extends AppCompatActivity implements OnMapReadyCallbac
     private FloatingActionButton fab, fab1, fab2, fab3, fab4, fab5;
     LayoutInflater inflater;
     List<Double> lst = new ArrayList<Double>();
+    Intent intent;
     @Override
     protected void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
@@ -113,19 +113,33 @@ public class MapsActivity extends AppCompatActivity implements OnMapReadyCallbac
 
     }
     @Override
+    protected void onActivityResult(int requestCode, int resultCode, Intent data) {
+        super.onActivityResult(requestCode, resultCode, data);
+
+        if (resultCode == RESULT_OK) {
+            if (requestCode == 1) {
+                GetMission getMisson = new GetMission();
+                getMisson.execute(new MissinInfo(data.getStringExtra("address"),(data.getIntExtra("index",-1))));
+
+
+
+                Toast.makeText(MapsActivity.this, "address 넘어옴."+data.getStringExtra("address"), Toast.LENGTH_LONG).show();
+
+            }
+        }
+    }
+    @Override
     public void onClick(View v) {
         int id = v.getId();
         switch (id) {
             //메뉴 활성화 버튼
             case R.id.fab:
                 anim();
-                Toast.makeText(this, "Floating Action Button", Toast.LENGTH_SHORT).show();
                 break;
 
             //erase button
             case R.id.fab1:
                 anim();
-
                 break;
 
             //log button
@@ -143,13 +157,14 @@ public class MapsActivity extends AppCompatActivity implements OnMapReadyCallbac
 
             //my mission button
             case R.id.fab3:
-                anim();
+                anim();/*
                 try {
                     SearchMission searchMission = new SearchMission();
                     searchMission.execute();
                 } catch (Exception e) {
                     Toast.makeText(MapsActivity.this,e.toString(),Toast.LENGTH_SHORT).show();
-                }
+                }*/
+                startActivityForResult(intent, 1);
                 break;
 
             //send mission button
@@ -228,8 +243,7 @@ public class MapsActivity extends AppCompatActivity implements OnMapReadyCallbac
         @Override
         protected void onPreExecute(){
             asyncDialog.setProgressStyle(ProgressDialog.STYLE_SPINNER);
-            asyncDialog.setMessage("로딩중입니다..");
-
+            asyncDialog.setMessage(String.valueOf(db.selectAll().size()));
             // show dialog
             asyncDialog.show();
             super.onPreExecute();
@@ -277,7 +291,70 @@ public class MapsActivity extends AppCompatActivity implements OnMapReadyCallbac
 
         }
     }
+    private class GetMission extends AsyncTask<MissinInfo, String,List<MarkerItem>> {
+        ProgressDialog asyncDialog = new ProgressDialog(
+                MapsActivity.this);
+        @Override
+        protected void onPreExecute(){
+            asyncDialog.setProgressStyle(ProgressDialog.STYLE_SPINNER);
+            asyncDialog.setMessage("미션 전송중입니다...");
 
+            // show dialog
+            asyncDialog.show();
+            super.onPreExecute();
+        }
+
+        @Override
+        protected  List<MarkerItem> doInBackground(MissinInfo... params) {
+            List<MarkerItem> result = new ArrayList<MarkerItem>();
+            Tuple3<List<BigInteger>,List<BigInteger>,BigInteger> missionData;
+            double inputLat, inputLon;
+            BigInteger inputState;
+            try {
+
+                //전송
+                missionData = droneChain.getMission(params[0].getDroneAddr(),BigInteger.valueOf(params[0].getMissionIndex())).send();
+
+                for(int i = 0; i < missionData.getValue1().size(); i++) {
+                    inputLat = Double.valueOf(missionData.getValue1().get(i).toString())/Double.valueOf("1000000");
+                    inputLon = Double.valueOf(missionData.getValue2().get(i).toString())/Double.valueOf("1000000");
+                    inputState = missionData.getValue3();
+                    result.add(new MarkerItem(inputLat,inputLon,inputState,""));
+                }
+            } catch (Exception e) {
+                result= result;
+            }
+            return result;
+        }
+
+        @Override
+        protected void onPostExecute(List<MarkerItem> result) {
+            super.onPostExecute(result);
+            BitmapDrawable bitmapdraw=(BitmapDrawable)getResources().getDrawable(R.drawable.waiting);
+            Bitmap waitingBitmap= Bitmap.createScaledBitmap(bitmapdraw.getBitmap(),50,50,false);
+            bitmapdraw=(BitmapDrawable)getResources().getDrawable(R.drawable.execute);
+            Bitmap executeBitmap= Bitmap.createScaledBitmap(bitmapdraw.getBitmap(),50,50,false);
+            bitmapdraw=(BitmapDrawable)getResources().getDrawable(R.drawable.finish);
+            Bitmap finishBitmap= Bitmap.createScaledBitmap(bitmapdraw.getBitmap(),50,50,false);
+            bitmapdraw=(BitmapDrawable)getResources().getDrawable(R.drawable.reject);
+            Bitmap rejectBitmap= Bitmap.createScaledBitmap(bitmapdraw.getBitmap(),50,50,false);
+            for(MarkerItem i : result){
+                Bitmap inputIcon = waitingBitmap;
+                if(BigInteger.valueOf(0).equals(i.getState()))
+                    inputIcon = waitingBitmap;
+                else if(BigInteger.valueOf(1).equals(i.getState()))
+                    inputIcon = executeBitmap;
+                else if(BigInteger.valueOf(2).equals(i.getState()))
+                    inputIcon = finishBitmap;
+                else if(BigInteger.valueOf(3).equals(i.getState()))
+                    inputIcon = rejectBitmap;
+
+                mMap.addMarker(new MarkerOptions().position(i.getCoord()).title("Mission").snippet(i.getAddr()).icon(BitmapDescriptorFactory.fromBitmap(inputIcon)));
+            }
+            asyncDialog.dismiss();
+        }
+
+    }
     private class SetMission extends AsyncTask<Void, String,String> {
         ProgressDialog asyncDialog = new ProgressDialog(
                 MapsActivity.this);
@@ -478,8 +555,8 @@ public class MapsActivity extends AppCompatActivity implements OnMapReadyCallbac
                     selectedDrone = new MarkerItem(marker.getPosition().latitude,marker.getPosition().longitude,BigInteger.valueOf(-1),marker.getSnippet());
                     selectedDrone.selectMarker(true);
                     //비행 이력 수신
-
-
+                    intent = new Intent(MapsActivity.this, DroneLogActivity.class);
+                    intent.putExtra("DroneAdd",String.valueOf(marker.getSnippet()));
                 }
                 if(marker.getTitle().equals("waypoint")){
                     marker.remove();

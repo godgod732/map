@@ -114,4 +114,19 @@ public class DBManager {
         results.close();
         return infos;
     }
+    public ArrayList<MissinInfo> selectSpecifyAddr() {
+        String sql = "select * from " + tableName + ";";
+        Cursor results = db.rawQuery(sql, null);
+
+        results.moveToFirst();
+        ArrayList<MissinInfo> infos = new ArrayList<MissinInfo>();
+
+        while (!results.isAfterLast()) {
+            MissinInfo info = new MissinInfo(results.getString(1), results.getInt(2));
+            infos.add(info);
+            results.moveToNext();
+        }
+        results.close();
+        return infos;
+    }
 }
