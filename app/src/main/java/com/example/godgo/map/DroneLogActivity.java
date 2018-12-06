@@ -86,35 +86,17 @@ public class DroneLogActivity extends AppCompatActivity {
         super.onCreate(savedInstanceState);
         setContentView(R.layout.activity_log);
 
-        //Intent intent = new Intent(this.getIntent());
 
         getLog();
     }
 
-//        initUi();
-//
-//        ListView listView = (ListView) findViewById(R.id.listView);
-//        ArrayList<LogItem> Log = new ArrayList<>();
-//
-//        AdapterItem adapter = new AdapterItem(this, R.layout.adapter_log, Log);
-//        listView.setAdapter(adapter);
-//    private void initUi() {
-//        Button logButton = (Button) findViewById(R.id.button);
-//        logButton.setOnClickListener(new View.OnClickListener() {
-//            @Override
-//            public void onClick(View v) {
-//                getLog();
-//            }
-//        });
-//    }
 
     public void getLog() {
         try {
             ReadDrone readDrone = new ReadDrone();
             readDrone.execute();
-//            droneChain.traceFlightHistory()
         } catch (Exception e) {
-            //읽어오는데 에러가 발생했을경우 발생하는 토스트 실행구문
+
         }
     }
 
@@ -137,20 +119,9 @@ public class DroneLogActivity extends AppCompatActivity {
                 //받아온 드론 주소에 대해서 조사 실시
                 for (MissinInfo i : missionData) {
 
-                    //droneLog = droneChain.traceFlightHistory(i, droneChain.getDroneStateByAddr(i).send().getValue3()).send(); // 갖고온 state로 확인하는것 두가지 방식이 있지만 여기서는 그냥 drone 의 state 를 따라가는걸로 설정
-                    //int k = 0;
-                    //for (BigInteger j = BigInteger.valueOf(0); j.compareTo(droneLog.getValue4()) < 0; j = j.add(BigInteger.ONE), k++) { // j=0 ; j<dronelog.count; j++;
-                    //Listviewitem listviewitem = new Listviewitem(droneLog.getValue1().get(k), droneLog.getValue2().get(k), droneLog.getValue3().get(k), droneLog.getValue4()); // 이해의 편의상 값처리 안하고 넣어줌
-                    //result.add(listviewitem); //listviewitem 에 추가함
-                    /*
-                    if(!i.getDroneAddr().equals(s)) {
-                        continue;
-                    }*/
                     getMissionInfo = droneChain.getMission(i.getDroneAddr(), BigInteger.valueOf(i.getMissionIndex())).send();
                     List<BigInteger> lat = getMissionInfo.getValue1();
                     for (int j = 0; j < lat.size(); j++) {
-//                            inputLat = Double.valueOf(lat.get(j).toString()) / Double.valueOf("1000000");
-//                            inputLon = Double.valueOf(lon.get(j).toString()) / Double.valueOf("1000000");
                         result.add(new Listviewitem(getMissionInfo.getValue1().get(j),getMissionInfo.getValue2().get(j),s,getMissionInfo.getValue3(),i.getMissionIndex()));
                     }
                 }
@@ -195,11 +166,9 @@ public class DroneLogActivity extends AppCompatActivity {
                     Intent intent = getIntent();
 
                     Toast.makeText(DroneLogActivity.this, Log.get(position).getCommander(), Toast.LENGTH_LONG).show();
-                    //Intent intent =new Intent(DroneLogActivity.this,MapsActivity.class);
                     intent.putExtra("address", Log.get(position).getCommander());
                     intent.putExtra("index",Log.get(position).getIndex());
                     setResult(RESULT_OK, intent);
-                    //startActivity(intent);
                     finish();
                 }
             });
