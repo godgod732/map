@@ -72,6 +72,7 @@ public class MapsActivity extends AppCompatActivity implements OnMapReadyCallbac
     protected void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
         setContentView(R.layout.activity_maps);
+        selectedDrone = new MarkerItem();
         fab_open = AnimationUtils.loadAnimation(getApplicationContext(), R.anim.fab_open);
         fab_close = AnimationUtils.loadAnimation(getApplicationContext(), R.anim.fab_close);
         fab = (FloatingActionButton) findViewById(R.id.fab);
@@ -104,27 +105,28 @@ public class MapsActivity extends AppCompatActivity implements OnMapReadyCallbac
 
 
         //initialize
-        contractAddr= "0xa56e93d7a1Bf923Aa2A8DD863535d124BBD776EA";
+        contractAddr= "0x9ed14fdE442b5721918ee713dA184d92ea0A58bC";
         web3 = Web3jFactory.build(new HttpService("https://rinkeby.infura.io/v3/8ff6512d7e094fe9ac1190b231614703"));
 
         droneChain = Dronechain.load(contractAddr,web3,credentials,gasPrice,gasLimit);
         db = new DBManager(MapsActivity.this,contractAddr);
+        intent = new Intent(MapsActivity.this, DroneLogActivity.class);
         initUi();
 
     }
     @Override
     protected void onActivityResult(int requestCode, int resultCode, Intent data) {
         super.onActivityResult(requestCode, resultCode, data);
-
+        mMap.clear();
+        Tuple3<BigInteger,BigInteger,BigInteger> droneInfo;
         if (resultCode == RESULT_OK) {
             if (requestCode == 1) {
-                GetMission getMisson = new GetMission();
-                getMisson.execute(new MissinInfo(data.getStringExtra("address"),(data.getIntExtra("index",-1))));
 
-
-
+                MyMissonDrone myMissonDrone = new MyMissonDrone();
+                myMissonDrone.execute(data.getStringExtra("address"));
+                GetMission getMission = new GetMission();
+                getMission.execute(new MissinInfo(data.getStringExtra("address"),(data.getIntExtra("index",-1))));
                 Toast.makeText(MapsActivity.this, "address 넘어옴."+data.getStringExtra("address"), Toast.LENGTH_LONG).show();
-
             }
         }
     }
@@ -167,7 +169,8 @@ public class MapsActivity extends AppCompatActivity implements OnMapReadyCallbac
                 } catch (Exception e) {
                     Toast.makeText(MapsActivity.this,e.toString(),Toast.LENGTH_SHORT).show();
                 }*/
-                startActivityForResult(intent, 1);
+                if(selectedDrone.isSelected())
+                    startActivityForResult(intent, 1);
                 break;
 
             //send mission button
@@ -238,6 +241,32 @@ public class MapsActivity extends AppCompatActivity implements OnMapReadyCallbac
         });
         selectButton.setEnabled(false);
  */
+    }
+    private class MyMissonDrone extends AsyncTask<String, String,MarkerItem> {
+        @Override
+        protected  MarkerItem doInBackground(String... addr) {
+            MarkerItem result;
+            Tuple3<BigInteger,BigInteger,BigInteger> droneInfo = new Tuple3<BigInteger,BigInteger,BigInteger>(BigInteger.valueOf(0),BigInteger.valueOf(0),BigInteger.valueOf(0));
+            MarkerItem markerItem;
+            double droneLat=0;
+            double droneLng=0;
+            try {
+                    droneInfo = droneChain.getDroneStateByAddr(addr[0]).send();
+                    droneLat = Double.valueOf(droneInfo.getValue1().toString())/Double.valueOf("1000000.0");
+                    droneLng =Double.valueOf(droneInfo.getValue2().toString())/Double.valueOf("1000000.0");
+            } catch(Exception e){
+                    Toast.makeText(MapsActivity.this,e.toString(),Toast.LENGTH_LONG).show();
+            }
+            result = new MarkerItem(droneLat,droneLng,droneInfo.getValue3(),addr[0]);
+            return result;
+        }
+
+        @Override
+        protected void onPostExecute(MarkerItem result) {
+            BitmapDrawable bitmapdraw=(BitmapDrawable)getResources().getDrawable(R.drawable.mavic);
+            Bitmap droneBitmap= Bitmap.createScaledBitmap(bitmapdraw.getBitmap(),100,100,false);
+            mMap.addMarker(new MarkerOptions().position(result.getCoord()).snippet(result.getAddr()).icon(BitmapDescriptorFactory.fromBitmap(droneBitmap)));
+        }
     }
     private class ReadDrone extends AsyncTask<Void, String,List<MarkerItem>> {
 
@@ -497,16 +526,16 @@ public class MapsActivity extends AppCompatActivity implements OnMapReadyCallbac
         protected  List<MarkerItem> doInBackground(String... params) {
             List<MarkerItem> result = new ArrayList<MarkerItem>();
             try {
-                Tuple4<List<BigInteger>, List<BigInteger>, List<String>, BigInteger> droneLog; // 드론 List -> 그 드론의 Mission 기록들 List 를 볼거임
+                Tuple4<List<BigInteger>, List<BigInteger>, List<String>, List<BigInteger>> droneLog; // 드론 List -> 그 드론의 Mission 기록들 List 를 볼거임
                 //받아온 드론 주소에 대해서 조사 실시
-                droneLog = droneChain.traceFlightHistory(params[0], BigInteger.valueOf(0)).send();// 갖고온 state로 확인하는것 두가지 방식이 있지만 여기서는 그냥 drone 의 state 를 따라가는걸로 설정
+                droneLog = droneChain.traceFlightHistory(params[0]).send();// 갖고온 state로 확인하는것 두가지 방식이 있지만 여기서는 그냥 drone 의 state 를 따라가는걸로 설정
                 double inputLat,inputLon;
                 BigInteger inputState;
                 String inputAddr;
                 for(int i = 0; i < droneLog.getValue1().size(); i++) {
                     inputLat = Double.valueOf(droneLog.getValue1().get(i).toString())/Double.valueOf("1000000");
                     inputLon = Double.valueOf(droneLog.getValue2().get(i).toString())/Double.valueOf("1000000");
-                    inputState = droneLog.getValue4();
+                    inputState = droneLog.getValue4().get(i);
                     inputAddr = droneLog.getValue3().get(i);
                     result.add(new MarkerItem(inputLat,inputLon,inputState,inputAddr));
                 }
@@ -519,6 +548,7 @@ public class MapsActivity extends AppCompatActivity implements OnMapReadyCallbac
         @Override
         protected void onPostExecute(List<MarkerItem> result) {
             super.onPostExecute(result);
+            Bitmap inputIcon;
             BitmapDrawable bitmapdraw=(BitmapDrawable)getResources().getDrawable(R.drawable.waiting);
             Bitmap waitingBitmap= Bitmap.createScaledBitmap(bitmapdraw.getBitmap(),50,50,false);
             bitmapdraw=(BitmapDrawable)getResources().getDrawable(R.drawable.execute);
@@ -528,14 +558,13 @@ public class MapsActivity extends AppCompatActivity implements OnMapReadyCallbac
             bitmapdraw=(BitmapDrawable)getResources().getDrawable(R.drawable.reject);
             Bitmap rejectBitmap= Bitmap.createScaledBitmap(bitmapdraw.getBitmap(),50,50,false);
             for(MarkerItem i : result){
-                Bitmap inputIcon = waitingBitmap;
                 if(BigInteger.valueOf(0).equals(i.getState()))
                     inputIcon = waitingBitmap;
                 else if(BigInteger.valueOf(1).equals(i.getState()))
                     inputIcon = executeBitmap;
                 else if(BigInteger.valueOf(2).equals(i.getState()))
                     inputIcon = finishBitmap;
-                else if(BigInteger.valueOf(3).equals(i.getState()))
+                else
                     inputIcon = rejectBitmap;
 
                 mMap.addMarker(new MarkerOptions().position(i.getCoord()).title("Mission").snippet(i.getAddr()).icon(BitmapDescriptorFactory.fromBitmap(inputIcon)));
@@ -556,9 +585,9 @@ public class MapsActivity extends AppCompatActivity implements OnMapReadyCallbac
                 Toast.makeText(MapsActivity.this,marker.getSnippet(),Toast.LENGTH_SHORT).show();
                 if(marker.getTitle().equals("Drones")) {
                     selectedDrone = new MarkerItem(marker.getPosition().latitude,marker.getPosition().longitude,BigInteger.valueOf(-1),marker.getSnippet());
+
                     selectedDrone.selectMarker(true);
-                    //비행 이력 수신
-                    intent = new Intent(MapsActivity.this, DroneLogActivity.class);
+                    //비행 이력
                     intent.putExtra("DroneAdd",String.valueOf(marker.getSnippet()));
                 }
                 if(marker.getTitle().equals("waypoint")){

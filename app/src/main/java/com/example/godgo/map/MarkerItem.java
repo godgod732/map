@@ -21,6 +21,9 @@ public class MarkerItem {
             this.address = address;
             this.selectedState = false;
         }
+        public MarkerItem(){
+
+        }
 
         public LatLng getCoord(){
             return new LatLng(lat,lon);
