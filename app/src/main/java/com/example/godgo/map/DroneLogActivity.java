@@ -79,7 +79,7 @@ public class DroneLogActivity extends AppCompatActivity {
             e.printStackTrace();
         }
 
-        contractAddr = "0x9ed14fdE442b5721918ee713dA184d92ea0A58bC";
+        contractAddr = "0xE3eAbe98469DaDB4088c3009Cc497207B9B3d24D";
         web3 = Web3jFactory.build(new HttpService("https://rinkeby.infura.io/v3/faa0a68fa9bc43b0a56c79f82069e283"));
         droneChain = Dronechain.load(contractAddr, web3, credentials, gasPrice, gasLimit);
         db = new DBManager(DroneLogActivity.this,contractAddr);

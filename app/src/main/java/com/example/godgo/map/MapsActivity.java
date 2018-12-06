@@ -118,7 +118,7 @@ public class MapsActivity extends AppCompatActivity implements OnMapReadyCallbac
 
 
         //initialize for blockchain
-        contractAddr= "0x9ed14fdE442b5721918ee713dA184d92ea0A58bC";
+        contractAddr= "0xE3eAbe98469DaDB4088c3009Cc497207B9B3d24D";
         web3 = Web3jFactory.build(new HttpService("https://rinkeby.infura.io/v3/8ff6512d7e094fe9ac1190b231614703"));
         droneChain = Dronechain.load(contractAddr,web3,credentials,gasPrice,gasLimit);
 
@@ -401,6 +401,7 @@ public class MapsActivity extends AppCompatActivity implements OnMapReadyCallbac
                     value = (waypointMarker.lon*Double.valueOf(1000000.0));
                     lonList.add(BigInteger.valueOf(value.intValue()));
                 }
+                waypoints.clear();
                 //전송
                 TransactionReceipt transactionReceipt = droneChain.setWayPoint(selectedDrone.getAddr(),latList,lonList).send();
                 //sql 데이터 쓰기(타겟 드론, 인덱스)
