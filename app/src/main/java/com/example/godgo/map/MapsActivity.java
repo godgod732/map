@@ -167,7 +167,8 @@ public class MapsActivity extends AppCompatActivity implements OnMapReadyCallbac
                     } catch (Exception e) {
 
                     }
-                }
+                }else
+                    Toast.makeText(MapsActivity.this,"드론을 선택해주세요",Toast.LENGTH_SHORT).show();
                 break;
 
             //my mission button
@@ -180,14 +181,19 @@ public class MapsActivity extends AppCompatActivity implements OnMapReadyCallbac
             //send mission button
             case R.id.fab4:
                 anim();
-                if(!waypoints.isEmpty() && selectedDrone.isSelected()){
+                if(!waypoints.isEmpty() && selectedDrone.isSelected()) {
                     try {
                         SetMission sendMission = new SetMission();
                         sendMission.execute();
+                    } catch (Exception e) {
+                        Toast.makeText(MapsActivity.this, e.toString(), Toast.LENGTH_SHORT).show();
                     }
-                    catch(Exception e) {
-                        Toast.makeText(MapsActivity.this,e.toString(),Toast.LENGTH_SHORT).show();
-                    }
+                }else if(waypoints.isEmpty() && !selectedDrone.isSelected()){
+                    Toast.makeText(MapsActivity.this,"미션과 드론을 설정해주세요",Toast.LENGTH_SHORT).show();
+                }else if(waypoints.isEmpty()){
+                    Toast.makeText(MapsActivity.this,"미션을 설정해주세요",Toast.LENGTH_SHORT).show();
+                }else if(!selectedDrone.isSelected()) {
+                    Toast.makeText(MapsActivity.this, "드론을 선택해주세요", Toast.LENGTH_SHORT).show();
                 }
                 break;
 
