@@ -64,8 +64,6 @@ public class MapsActivity extends AppCompatActivity implements OnMapReadyCallbac
     private Animation fab_open, fab_close;
     private Boolean isFabOpen = false;
     private FloatingActionButton fab, fab1, fab2, fab3, fab4, fab5;
-    LayoutInflater inflater;
-    List<Double> lst = new ArrayList<Double>();
     Intent intent;
     BitmapDrawable bitmapdraw;
     Bitmap waitingBitmap,  executeBitmap, finishBitmap, rejectBitmap;
@@ -247,7 +245,6 @@ public class MapsActivity extends AppCompatActivity implements OnMapReadyCallbac
         protected  MarkerItem doInBackground(String... addr) {
             MarkerItem result;
             Tuple3<BigInteger,BigInteger,BigInteger> droneInfo = new Tuple3<BigInteger,BigInteger,BigInteger>(BigInteger.valueOf(0),BigInteger.valueOf(0),BigInteger.valueOf(0));
-            MarkerItem markerItem;
             double droneLat=0;
             double droneLng=0;
             try {
