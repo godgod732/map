@@ -25,6 +25,7 @@ public class DBManager {
 
     // 생성자
     public DBManager(Context context,String dbNameByContractAddr) {
+        //컨트랙트 별 DB생성을 위해 컨트랙트 어드레스 일부 참조
         dbName = dbNameByContractAddr.substring(2,6) + ".db";
         this.context = context;
         this.opener = new OpenHelper(context, dbName, null, dbVersion);
@@ -43,9 +44,6 @@ public class DBManager {
         // 생성된 DB가 없을 경우에 한번만 호출됨
         @Override
         public void onCreate(SQLiteDatabase arg0) {
-            // String dropSql = "drop table if exists " + tableName;
-            // db.execSQL(dropSql);
-
             String createSql = "create table " + tableName + " ("
                     + "id integer primary key autoincrement, " + "drone text, "
                     + "missionindex integer)";
@@ -65,39 +63,6 @@ public class DBManager {
                 + info.getDroneAddr() + "', " + info.getMissionIndex() + ");";
         db.execSQL(sql);
     }
-    /*
-    // 데이터 갱신
-    public void updateData(APinfo info, int index) {
-        String sql = "update " + tableName + " set SSID = '" + info.getSSID()
-                + "', capabilities = " + info.getCapabilities()
-                + ", passwd = '" + info.getPasswd() + "' where id = " + index
-                + ";";
-        db.execSQL(sql);
-    }
-
-    // 데이터 삭제
-    public void removeData(int index) {
-        String sql = "delete from " + tableName + " where id = " + index + ";";
-        db.execSQL(sql);
-    }
-
-    // 데이터 검색
-    public APinfo selectData(int index) {
-        String sql = "select * from " + tableName + " where id = " + index
-                + ";";
-        Cursor result = db.rawQuery(sql, null);
-
-        // result(Cursor 객체)가 비어 있으면 false 리턴
-        if (result.moveToFirst()) {
-            APinfo info = new APinfo(result.getInt(0), result.getString(1),
-                    result.getInt(2), result.getString(3));
-            result.close();
-            return info;
-        }
-        result.close();
-        return null;
-    }
-*/
 
     // 데이터 전체 검색
     public ArrayList<MissinInfo> selectAll() {
@@ -115,19 +80,5 @@ public class DBManager {
         results.close();
         return infos;
     }
-    public ArrayList<MissinInfo> selectSpecifyAddr() {
-        String sql = "select * from " + tableName + ";";
-        Cursor results = db.rawQuery(sql, null);
 
-        results.moveToFirst();
-        ArrayList<MissinInfo> infos = new ArrayList<MissinInfo>();
-
-        while (!results.isAfterLast()) {
-            MissinInfo info = new MissinInfo(results.getString(1), results.getInt(2));
-            infos.add(info);
-            results.moveToNext();
-        }
-        results.close();
-        return infos;
-    }
 }

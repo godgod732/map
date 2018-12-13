@@ -125,7 +125,7 @@ public class MapsActivity extends AppCompatActivity implements OnMapReadyCallbac
         db = new DBManager(MapsActivity.this,contractAddr);
         intent = new Intent(MapsActivity.this, DroneLogActivity.class);
     }
-    //
+    //DroneLogActivity 에서 액티비티 전환될때의 콜백
     @Override
     protected void onActivityResult(int requestCode, int resultCode, Intent data) {
         super.onActivityResult(requestCode, resultCode, data);
@@ -140,6 +140,7 @@ public class MapsActivity extends AppCompatActivity implements OnMapReadyCallbac
             }
         }
     }
+    //fab버튼 콜백처리
     @Override
     public void onClick(View v) {
         int id = v.getId();
@@ -239,7 +240,9 @@ public class MapsActivity extends AppCompatActivity implements OnMapReadyCallbac
         }
     }
 
+    //인스턴스화 시점 : DroneLogActivity 에서 intent 전환시 발생하는 콜백함수에서 인스턴스화
     private class MyMissonDrone extends AsyncTask<String, String,MarkerItem> {
+        //doInBackGround : 인자로 드론의 지갑주소를 받아 result 드론 정보를 삽입 후 onPostExecute 로 넘김
         @Override
         protected  MarkerItem doInBackground(String... addr) {
             MarkerItem result;
@@ -257,7 +260,7 @@ public class MapsActivity extends AppCompatActivity implements OnMapReadyCallbac
             result = new MarkerItem(droneLat,droneLng,droneInfo.getValue3(),addr[0]);
             return result;
         }
-
+        //onPostExecute : doInBackGround 에서 받은 드론 정보를 구글맵에 마커를 그림
         @Override
         protected void onPostExecute(MarkerItem result) {
             BitmapDrawable bitmapdraw=(BitmapDrawable)getResources().getDrawable(R.drawable.mavic);
@@ -265,69 +268,23 @@ public class MapsActivity extends AppCompatActivity implements OnMapReadyCallbac
             mMap.addMarker(new MarkerOptions().position(result.getCoord()).snippet(result.getAddr()).icon(BitmapDescriptorFactory.fromBitmap(droneBitmap)));
         }
     }
-    private class ReadDrone extends AsyncTask<Void, String,List<MarkerItem>> {
 
-        ProgressDialog asyncDialog = new ProgressDialog(
-                MapsActivity.this);
-        @Override
-        protected void onPreExecute(){
-            asyncDialog.setProgressStyle(ProgressDialog.STYLE_SPINNER);
-            asyncDialog.setMessage("드론을 불러오는 중입니다.");
-            // show dialog
-            asyncDialog.show();
-            super.onPreExecute();
-        }
-
-        @Override
-        protected  List<MarkerItem> doInBackground(Void... arg0) {
-            List<MarkerItem> result = new ArrayList<MarkerItem>();
-            List<String> droneAddr = new ArrayList<String>();
-            Tuple3<BigInteger,BigInteger,BigInteger> droneInfo;
-            MarkerItem markerItem;
-            double inputLat;
-            double inputLng;
-
-            try {
-                droneAddr = droneChain.getDrones().send();
-                String s="";
-
-                for(int i = 0; i<droneAddr.size();i++){
-                    droneInfo = droneChain.getDroneStateByAddr(droneAddr.get(i)).send();
-                    inputLat = Double.valueOf(droneInfo.getValue1().toString())/Double.valueOf("1000000.0");
-                    inputLng = Double.valueOf(droneInfo.getValue2().toString())/Double.valueOf("1000000.0");
-                    result.add(new MarkerItem(inputLat,inputLng,droneInfo.getValue3(),droneAddr.get(i)));
-                }
-            } catch (Exception e) {
-            }
-            return result;
-        }
-        @Override
-        protected void onPostExecute(List<MarkerItem> result) {
-            super.onPostExecute(result);
-            //드론 표시
-
-            BitmapDrawable bitmapdraw=(BitmapDrawable)getResources().getDrawable(R.drawable.mavic);
-            Bitmap droneBitmap= Bitmap.createScaledBitmap(bitmapdraw.getBitmap(),100,100,false);
-            for(MarkerItem i : result){
-                //t.setText(i.getCoordToDouble().toString());
-                mMap.addMarker(new MarkerOptions().position(i.getCoord()).title("Drones").snippet(i.getAddr()).icon(BitmapDescriptorFactory.fromBitmap(droneBitmap)));
-            }
-            asyncDialog.dismiss();
-        }
-    }
+    //인스턴스화 시점 : DroneLogActivity 에서 intent 전환시 발생하는 콜백함수에서 인스턴스화
     private class GetMission extends AsyncTask<MissinInfo, String,List<MarkerItem>> {
+        //로딩 dialog 를 위한 객체 선언
         ProgressDialog asyncDialog = new ProgressDialog(
                 MapsActivity.this);
+        //로딩 dialog 표시
         @Override
         protected void onPreExecute(){
             asyncDialog.setProgressStyle(ProgressDialog.STYLE_SPINNER);
-            asyncDialog.setMessage("미션 전송중입니다...");
+            asyncDialog.setMessage("미션 불러오는 중입니다...");
 
             // show dialog
             asyncDialog.show();
             super.onPreExecute();
         }
-
+        //doInBackGround :파라미터로 전달받은 MissionInfo 를 통해서 미션 조회 후, 해당 정보를 onPostExecute 에 전달
         @Override
         protected  List<MarkerItem> doInBackground(MissinInfo... params) {
             List<MarkerItem> result = new ArrayList<MarkerItem>();
@@ -335,7 +292,6 @@ public class MapsActivity extends AppCompatActivity implements OnMapReadyCallbac
             double inputLat, inputLon;
             BigInteger inputState;
             try {
-
                 //전송
                 missionData = droneChain.getMission(params[0].getDroneAddr(),BigInteger.valueOf(params[0].getMissionIndex())).send();
 
@@ -350,7 +306,7 @@ public class MapsActivity extends AppCompatActivity implements OnMapReadyCallbac
             }
             return result;
         }
-
+        //onPostExecute : doInBackGround 에서 받은 미션 정보를 구글맵에 표시
         @Override
         protected void onPostExecute(List<MarkerItem> result) {
             super.onPostExecute(result);
@@ -371,9 +327,70 @@ public class MapsActivity extends AppCompatActivity implements OnMapReadyCallbac
         }
 
     }
-    private class SetMission extends AsyncTask<Void, String,String> {
+
+    //인스턴스화 시점 : 드론 표시 FAB 버튼을 눌렀을 때
+    private class ReadDrone extends AsyncTask<Void, String,List<MarkerItem>> {
+        //로딩 dialog 를 위한 객체 선언
         ProgressDialog asyncDialog = new ProgressDialog(
                 MapsActivity.this);
+
+        //로딩 dialog 표시
+        @Override
+        protected void onPreExecute(){
+            asyncDialog.setProgressStyle(ProgressDialog.STYLE_SPINNER);
+            asyncDialog.setMessage("드론을 불러오는 중입니다.");
+            // show dialog
+            asyncDialog.show();
+            super.onPreExecute();
+        }
+
+        //doInBackGround : 블록체인에 존재하는 모든 드론의 정보를 받아오고 그 정보를 바탕으로 List를 생성한다.
+        @Override
+        protected  List<MarkerItem> doInBackground(Void... arg0) {
+            List<MarkerItem> result = new ArrayList<MarkerItem>();
+            List<String> droneAddr = new ArrayList<String>();
+            Tuple3<BigInteger,BigInteger,BigInteger> droneInfo;
+            double inputLat;
+            double inputLng;
+            try {
+                droneAddr = droneChain.getDrones().send();
+
+                for(int i = 0; i<droneAddr.size();i++){
+                    droneInfo = droneChain.getDroneStateByAddr(droneAddr.get(i)).send();
+                    inputLat = Double.valueOf(droneInfo.getValue1().toString())/Double.valueOf("1000000.0");
+                    inputLng = Double.valueOf(droneInfo.getValue2().toString())/Double.valueOf("1000000.0");
+                    result.add(new MarkerItem(inputLat,inputLng,droneInfo.getValue3(),droneAddr.get(i)));
+                }
+            } catch (Exception e) {
+            }
+            return result;
+        }
+        //onPostExecute : doInBackground 에서 생성한 List 정보를 바탕으로 드론 마커 표시
+        @Override
+        protected void onPostExecute(List<MarkerItem> result) {
+            super.onPostExecute(result);
+            //드론 표시
+
+            BitmapDrawable bitmapdraw=(BitmapDrawable)getResources().getDrawable(R.drawable.mavic);
+            Bitmap droneBitmap= Bitmap.createScaledBitmap(bitmapdraw.getBitmap(),100,100,false);
+            for(MarkerItem i : result){
+                //t.setText(i.getCoordToDouble().toString());
+                mMap.addMarker(new MarkerOptions().position(i.getCoord()).title("Drones").snippet(i.getAddr()).icon(BitmapDescriptorFactory.fromBitmap(droneBitmap)));
+            }
+            asyncDialog.dismiss();
+        }
+    }
+
+    /*
+    내용 : 특정 드론 주소에 미션을 등록
+    인스턴스화 시점 : 드론 표시 FAB 버튼을 눌렀을 때
+    */
+    private class SetMission extends AsyncTask<Void, String,String> {
+        //로딩 dialog 를 위한 객체 선언
+        ProgressDialog asyncDialog = new ProgressDialog(
+                MapsActivity.this);
+
+        //로딩 dialog 표시
         @Override
         protected void onPreExecute(){
             asyncDialog.setProgressStyle(ProgressDialog.STYLE_SPINNER);
@@ -382,8 +399,9 @@ public class MapsActivity extends AppCompatActivity implements OnMapReadyCallbac
             // show dialog
             asyncDialog.show();
             super.onPreExecute();
-        }
 
+        }
+        //doInBackGround : waypoints와 selectedDrone에 저장된 미션 정보를 블록체인에 등록
         @Override
         protected  String doInBackground(Void... params) {
             String result = "미션이 성공적으로 전송되었습니다.";
@@ -410,11 +428,11 @@ public class MapsActivity extends AppCompatActivity implements OnMapReadyCallbac
                 MissinInfo insertData = new MissinInfo(selectedDrone.getAddr(),Integer.parseInt(paraData));
                 db.insertData(insertData);
             } catch (Exception e) {
-                result = "전송 실패";
+                result = e.toString();
             }
             return result;
         }
-
+        //onPostExecute : 에러 발생시 에러 메세지 출력
         @Override
         protected void onPostExecute(String result) {
             super.onPostExecute(result);
@@ -424,71 +442,16 @@ public class MapsActivity extends AppCompatActivity implements OnMapReadyCallbac
 
     }
 
-    private class SearchMission extends AsyncTask<Void, String,List<MarkerItem>> {
-        ProgressDialog asyncDialog = new ProgressDialog(
-                MapsActivity.this);
-        @Override
-        protected void onPreExecute(){
-            asyncDialog.setProgressStyle(ProgressDialog.STYLE_SPINNER);
-            asyncDialog.setMessage("미션 로딩중입니다...");
-            // show dialog
-            asyncDialog.show();
-            super.onPreExecute();
-        }
-        @Override
-        protected  List<MarkerItem> doInBackground(Void... params) {
-            //데이터 읽어와서 마커 표시하기
-            List<MarkerItem> result = new ArrayList<MarkerItem>();
-            Tuple3<List<BigInteger>,List<BigInteger>,BigInteger> getMissionInfo;
-            List<MissinInfo> missionData= db.selectAll();
-            double inputLat;
-            double inputLon;
-            BigInteger inputState;
-            try{
-                //기능 구헌
-                for(MissinInfo i : missionData) {
-                    getMissionInfo = droneChain.getMission(i.getDroneAddr(), BigInteger.valueOf(i.getMissionIndex())).send();
-
-                    List<BigInteger> lat  = getMissionInfo.getValue1();
-                    List<BigInteger> lon  = getMissionInfo.getValue2();
-                    inputState =  getMissionInfo.getValue3();
-                    for(int j = 0; j < lat.size(); j++){
-                        inputLat = Double.valueOf(lat.get(j).toString())/Double.valueOf("1000000");
-                        inputLon = Double.valueOf(lon.get(j).toString())/Double.valueOf("1000000");
-                        result.add(new MarkerItem(inputLat,inputLon,inputState,""));
-                    }
-                }
-            }catch (Exception e){
-                result = result;
-            }
-            return result;
-        }
-        @Override
-        protected void onPostExecute(List<MarkerItem> result) {
-            //마커 그리기
-            super.onPostExecute(result);
-            //드론 표시
-            for(MarkerItem i : result){
-                Bitmap inputIcon = waitingBitmap;
-                if(BigInteger.valueOf(0).equals(i.getState()))
-                    inputIcon = waitingBitmap;
-                else if(BigInteger.valueOf(1).equals(i.getState()))
-                    inputIcon = executeBitmap;
-                else if(BigInteger.valueOf(2).equals(i.getState()))
-                    inputIcon = finishBitmap;
-                else if(BigInteger.valueOf(3).equals(i.getState()))
-                    inputIcon = rejectBitmap;
-
-                mMap.addMarker(new MarkerOptions().position(i.getCoord()).title("Mission").snippet(i.getAddr()).icon(BitmapDescriptorFactory.fromBitmap(inputIcon)));
-            }
-            asyncDialog.dismiss();
-        }
-
-    }
-    //비행 이력 조회
+    /*
+    내용 : 특정 드론의 비행이력을 조회
+    인스턴스화 시점 : 이력 조회 FAB 버튼을 눌렀을 때
+    */
     private class ReadFlightHistory extends AsyncTask<String, String,List<MarkerItem>> {
+        //로딩 dialog 를 위한 객체 선언
         ProgressDialog asyncDialog = new ProgressDialog(
                 MapsActivity.this);
+
+        //로딩 dialog 표시
         @Override
         protected void onPreExecute(){
             super.onPreExecute();
@@ -498,13 +461,14 @@ public class MapsActivity extends AppCompatActivity implements OnMapReadyCallbac
             asyncDialog.show();
 
         }
+        //doInBackGround : selectedDrone에 저장된 드론 정보를 바탕으로 해당 드론의 비행이력(미션정보)을 블록체인에서 가져옴
         @Override
         protected  List<MarkerItem> doInBackground(String... params) {
             List<MarkerItem> result = new ArrayList<MarkerItem>();
             try {
-                Tuple4<List<BigInteger>, List<BigInteger>, List<String>, List<BigInteger>> droneLog; // 드론 List -> 그 드론의 Mission 기록들 List 를 볼거임
+                Tuple4<List<BigInteger>, List<BigInteger>, List<String>, List<BigInteger>> droneLog;
                 //받아온 드론 주소에 대해서 조사 실시
-                droneLog = droneChain.traceFlightHistory(params[0]).send();// 갖고온 state로 확인하는것 두가지 방식이 있지만 여기서는 그냥 drone 의 state 를 따라가는걸로 설정
+                droneLog = droneChain.traceFlightHistory(params[0]).send();
                 double inputLat,inputLon;
                 BigInteger inputState;
                 String inputAddr;
@@ -520,7 +484,7 @@ public class MapsActivity extends AppCompatActivity implements OnMapReadyCallbac
             }
             return result;
         }
-
+        //onPostExecute : doInBackGround 로 부터 전달받은 비행이력(미션 정보)를 바탕으로 맵에 미션 정보 표시
         @Override
         protected void onPostExecute(List<MarkerItem> result) {
             super.onPostExecute(result);
@@ -541,22 +505,28 @@ public class MapsActivity extends AppCompatActivity implements OnMapReadyCallbac
         }
 
     }
+
+    //구글맵 생성시 발생하는 콜백 함수
     @Override
     public void onMapReady(GoogleMap googleMap) {
         mMap = googleMap;
-        // Add a marker in Sydney and move the camera
+        //구글맵 초기 시점 설정
         LatLng KAU = new LatLng(37.600981, 126.864935);
         mMap.moveCamera(CameraUpdateFactory.newLatLng(KAU));
+
+        //마커 클릭 이벤트 리스너
         mMap.setOnMarkerClickListener(new GoogleMap.OnMarkerClickListener() {
             @Override
             public boolean onMarkerClick(Marker marker) {
                 Toast.makeText(MapsActivity.this,marker.getSnippet(),Toast.LENGTH_SHORT).show();
+                //드론 마커 클릭시, 해당 드론 정보를 등록한다.
                 if(marker.getTitle().equals("Drones")) {
                     selectedDrone = new MarkerItem(marker.getPosition().latitude,marker.getPosition().longitude,BigInteger.valueOf(-1),marker.getSnippet());
 
                     selectedDrone.selectMarker(true);
                     intent.putExtra("DroneAdd",String.valueOf(marker.getSnippet()));
                 }
+                //웨이포인트 마커일 경우 삭제(잘못 선택된 경우를 고려)
                 if(marker.getTitle().equals("waypoint")){
                     marker.remove();
                     waypoints.remove(Integer.valueOf(marker.getSnippet()));
@@ -564,8 +534,10 @@ public class MapsActivity extends AppCompatActivity implements OnMapReadyCallbac
                 return true;
             }
         });
+        //맵 클릭 리스너 등록
         mMap.setOnMapClickListener(new GoogleMap.OnMapClickListener() {
             @Override
+            //해당 포인트를 미션 웨이포인트에 등록
             public void onMapClick(LatLng point) {
                 waypoints.put(waypointCnt,new MarkerItem(point.latitude,point.longitude,BigInteger.valueOf(-1),""));
                 mMap.addMarker(new MarkerOptions().position(point).snippet(waypointCnt.toString()).title("waypoint"));
